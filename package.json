@@ -23,7 +23,7 @@
     "react": "^19.2.3",
     "react-native": "^0.81.5",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
+    "vitest": "^5.1.0",
     "zod": "^4.4.3"
   },
   "description": "Paseo plugin that routes agents and metadata generation to a provider profile based on the project path",
