@@ -27,5 +27,16 @@
     "zod": "^4.4.3"
   },
   "description": "Paseo plugin that routes agents and metadata generation to a provider profile based on the project path",
+  "author": "Grzegorz Kielak <grzegorz@kielak.me>",
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "routing",
+    "agents",
+    "profiles"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT"
 }
