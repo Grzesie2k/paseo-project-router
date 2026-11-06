@@ -1,0 +1,9 @@
+{
+  "id": "paseo-project-router",
+  "name": "Project router",
+  "description": "Routes agents and generated titles, branches, commits and PR text to a provider profile chosen by project path",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.14.0"
+  }
+}

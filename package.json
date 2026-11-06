@@ -1,0 +1,31 @@
+{
+  "name": "paseo-project-router",
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "paseo-plugin.json",
+    "index.client.tsx",
+    "index.server.ts",
+    "client/",
+    "server/",
+    "shared/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "^0.15.1",
+    "@types/node": "^20.9.0",
+    "@types/react": "~19.2.0",
+    "react": "^19.2.3",
+    "react-native": "^0.81.5",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "zod": "^4.4.3"
+  },
+  "description": "Paseo plugin that routes agents and metadata generation to a provider profile based on the project path",
+  "license": "MIT"
+}
