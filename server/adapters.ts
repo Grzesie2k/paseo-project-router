@@ -6,6 +6,7 @@ export type AdapterKind = "claude" | "opencode";
 export interface Adapter {
   kind: AdapterKind;
   command: string;
+  prefixArgs: string[];
   env: Record<string, string>;
 }
 
@@ -34,20 +35,21 @@ export function resolveAdapter(
   const kind = root ? ROOT_KINDS[root] : undefined;
   if (!kind || providers[root]?.extends) return null;
 
-  let command: string | undefined;
+  let command: string[] | undefined;
   const env: Record<string, string> = {};
   for (const id of [...chain].reverse()) {
     const entry = providers[id];
     if (entry?.env) Object.assign(env, entry.env);
   }
   for (const id of chain) {
-    const first = providers[id]?.command?.[0];
-    if (first) {
-      command = first;
+    const configured = providers[id]?.command;
+    if (configured?.length) {
+      command = configured;
       break;
     }
   }
-  return { kind, command: command ?? kind, env };
+  const [executable = kind, ...prefixArgs] = command ?? [];
+  return { kind, command: executable, prefixArgs, env };
 }
 
 export function isSupportedForMetadata(
@@ -62,14 +64,14 @@ export function buildInvocation(adapter: Adapter, model: string | undefined, pro
   if (adapter.kind === "claude") {
     return {
       command: adapter.command,
-      args: ["-p", ...(model ? ["--model", model] : [])],
+      args: [...adapter.prefixArgs, "-p", ...(model ? ["--model", model] : [])],
       env,
       stdin: prompt,
     };
   }
   return {
     command: adapter.command,
-    args: ["run", ...(model ? ["-m", model] : [])],
+    args: [...adapter.prefixArgs, "run", ...(model ? ["-m", model] : [])],
     env,
     stdin: prompt,
   };

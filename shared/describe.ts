@@ -26,27 +26,27 @@ export function timelineLine(info: RouteInfo): string {
 }
 
 export interface PendingRoute {
-  cwd: string;
-  provider: string;
+  token: string;
   at: number;
   info: RouteInfo;
 }
 
 export const PENDING_TTL_MS = 60_000;
 
-// An agent claims the newest unexpired record for its cwd and effective provider.
+const isFresh = (p: PendingRoute, now: number, ttl: number) => now - p.at < ttl;
+
+export function prunePending(pending: readonly PendingRoute[], now: number, ttl: number = PENDING_TTL_MS): PendingRoute[] {
+  return pending.filter((p) => isFresh(p, now, ttl));
+}
+
+// A route is claimed by the token it attached to its create request.
 export function matchPending(
   pending: readonly PendingRoute[],
-  agent: { cwd: string; provider: string },
+  token: string,
   now: number,
   ttl: number = PENDING_TTL_MS,
 ): PendingRoute | null {
-  let best: PendingRoute | null = null;
-  for (const p of pending) {
-    if (now - p.at > ttl || p.cwd !== agent.cwd || p.provider !== agent.provider) continue;
-    if (!best || p.at > best.at) best = p;
-  }
-  return best;
+  return pending.find((p) => p.token === token && isFresh(p, now, ttl)) ?? null;
 }
 
 export function blockMessage(provider: string, route: string, fallback: boolean, profile: string): string {

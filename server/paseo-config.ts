@@ -99,11 +99,21 @@ export function parseConfigView(raw: unknown): PaseoConfigView {
   return { profiles, providers };
 }
 
-// Only daemon.agentProfiles and agents.providers are ever read from the file.
+// Only daemon.agentProfiles and agents.providers are ever read from the file. A missing file is an empty config.
+export async function loadPaseoConfig(env: NodeJS.ProcessEnv = process.env): Promise<PaseoConfigView> {
+  let text: string;
+  try {
+    text = await readFile(join(paseoHome(env), "config.json"), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { profiles: [], providers: {} };
+    throw error;
+  }
+  return parseConfigView(JSON.parse(text));
+}
+
 export async function readPaseoConfig(env: NodeJS.ProcessEnv = process.env): Promise<PaseoConfigView> {
   try {
-    const text = await readFile(join(paseoHome(env), "config.json"), "utf8");
-    return parseConfigView(JSON.parse(text));
+    return await loadPaseoConfig(env);
   } catch {
     return { profiles: [], providers: {} };
   }

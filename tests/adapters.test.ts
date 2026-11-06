@@ -10,7 +10,7 @@ const providers = {
 
 describe("adapters", () => {
   it("resolves claude and extending providers with their env", () => {
-    expect(resolveAdapter("claude", providers)).toEqual({ kind: "claude", command: "claude", env: { CONFIG: "/a" } });
+    expect(resolveAdapter("claude", providers)).toEqual({ kind: "claude", command: "claude", prefixArgs: [], env: { CONFIG: "/a" } });
     expect(resolveAdapter("claude-team", providers)?.env).toEqual({ CONFIG: "/b" });
   });
 
@@ -20,6 +20,14 @@ describe("adapters", () => {
       command: "my-oc",
       args: ["run", "-m", "vendor/model"],
       stdin: "hi",
+    });
+  });
+
+  it("keeps the arguments of a multi-word command", () => {
+    const adapter = resolveAdapter("claude", { claude: { command: ["docker", "run", "-i", "img", "claude"] } })!;
+    expect(buildInvocation(adapter, undefined, "hi")).toMatchObject({
+      command: "docker",
+      args: ["run", "-i", "img", "claude", "-p"],
     });
   });
 

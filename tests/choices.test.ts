@@ -42,13 +42,13 @@ describe("buildChoices", () => {
     expect(buildChoices(config).providers.map((p) => p.id).sort()).toEqual(["claude-team", "codex", "opencode"]);
   });
 
-  it("leaves out disabled and unconfigured providers, even when the snapshot lists them", () => {
+  it("leaves out disabled providers but keeps built-ins without a config entry", () => {
     const { providers } = buildChoices(config, [
       { provider: "pi", models: [{ id: "x", label: "X" }] },
-      { provider: "gemini", models: [] },
+      { provider: "claude", models: [] },
       { provider: "opencode", models: [] },
     ]);
-    expect(providers.map((p) => p.id).sort()).toEqual(["claude-team", "codex", "opencode"]);
+    expect(providers.map((p) => p.id).sort()).toEqual(["claude", "claude-team", "codex", "opencode"]);
   });
 
   it("falls back to the snapshot when no provider is configured", () => {

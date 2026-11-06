@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { blockMessage, matchPending, noteText, pillLabel, timelineLine, type PendingRoute } from "../shared/describe.js";
+import { blockMessage, matchPending, noteText, prunePending, pillLabel, timelineLine, type PendingRoute } from "../shared/describe.js";
 
 const info = { route: "acme", fallback: false, profile: "Acme", provider: "Provider A" };
-const entry = (over: Partial<PendingRoute> = {}): PendingRoute => ({ cwd: "/w/acme", provider: "a", at: 1000, info, ...over });
-const agent = { cwd: "/w/acme", provider: "a" };
+const entry = (over: Partial<PendingRoute> = {}): PendingRoute => ({ token: "t1", at: 1000, info, ...over });
 
 describe("matchPending", () => {
-  it("claims a record for the same cwd and provider", () => {
+  it("claims the record with the same token", () => {
     const hit = entry();
-    expect(matchPending([entry({ cwd: "/other" }), hit], agent, 2000)).toBe(hit);
+    expect(matchPending([entry({ token: "other" }), hit], "t1", 2000)).toBe(hit);
   });
 
-  it("ignores expired records and other providers", () => {
-    expect(matchPending([entry()], agent, 1000 + 61_000)).toBeNull();
-    expect(matchPending([entry({ provider: "b" })], agent, 2000)).toBeNull();
+  it("ignores expired records and other tokens", () => {
+    expect(matchPending([entry()], "t1", 1000 + 60_000)).toBeNull();
+    expect(matchPending([entry()], "t1", 1000 + 59_999)).not.toBeNull();
+    expect(matchPending([entry({ token: "b" })], "t1", 2000)).toBeNull();
   });
 
-  it("prefers the newest record", () => {
-    const newer = entry({ at: 1500 });
-    expect(matchPending([entry(), newer], agent, 2000)).toBe(newer);
+  it("prunes records with the same freshness rule", () => {
+    expect(prunePending([entry()], 1000 + 60_000)).toEqual([]);
+    expect(prunePending([entry()], 1000 + 59_999)).toHaveLength(1);
   });
 });
 

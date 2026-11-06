@@ -51,6 +51,15 @@ describe("routing", () => {
     expect(await nameOf(wt)).toBe("acme");
   });
 
+  it("routes a submodule by its checkout path, not by the superproject's git dir", async () => {
+    const sub = join(home, "oss/sub-src");
+    mkdirSync(sub, { recursive: true });
+    git(sub, "init", "-q");
+    git(sub, "commit", "-q", "--allow-empty", "-m", "init");
+    git(join(home, "work/acme"), "-c", "protocol.file.allow=always", "submodule", "add", "-q", sub, "vendor/sub");
+    expect(await nameOf(join(home, "work/acme/vendor/sub"))).toBe("acme");
+  });
+
   it("returns null for a path outside every route without fallback", async () => {
     expect(await nameOf(join(home, "scratch"))).toBeNull();
   });

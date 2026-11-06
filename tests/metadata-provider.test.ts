@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateMetadataText } from "../server/metadata-provider.js";
+import { createMetadataConnection, extractJson, generateMetadataText } from "../server/metadata-provider.js";
 import { settingsSchema } from "../shared/settings.js";
 
 const settings = settingsSchema.parse({
@@ -43,5 +43,35 @@ describe("generateMetadataText", () => {
     await expect(
       generateMetadataText("/elsewhere", "p", { getSettings: async () => s, readConfig: config }),
     ).rejects.toThrow(/not supported/);
+  });
+});
+
+describe("extractJson", () => {
+  it("unwraps fences and surrounding prose", () => {
+    expect(extractJson('```json\n{"a":1}\n```')).toBe('{"a":1}');
+    expect(extractJson('Here you go: {"a":[1,2]} Done.')).toBe('{"a":[1,2]}');
+    expect(extractJson('{"a":1}')).toBe('{"a":1}');
+  });
+
+  it("returns non-JSON text unchanged", () => {
+    expect(extractJson("just words")).toBe("just words");
+  });
+});
+
+describe("metadata connection", () => {
+  const prompt = (sessionId: string) =>
+    ({
+      type: "session.prompt",
+      requestId: "r",
+      sessionId,
+      prompt: { clientMessageId: "m1", input: { type: "message", content: [{ type: "text", text: "hi" }] } },
+    }) as never;
+
+  it("fails a prompt for an unknown session", async () => {
+    const connection = createMetadataConnection({ getSettings: async () => settings });
+    const events: { type: string; result?: { type: string } }[] = [];
+    connection.onEvent((event) => events.push(event as never));
+    await connection.send(prompt("nope"));
+    expect(events).toMatchObject([{ type: "session.prompt_result", result: { type: "failed" } }]);
   });
 });

@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import type { Fallback, Route, RoutingSettings, Target } from "../shared/settings.js";
 
 export function expandHome(path: string, home: string = homedir()): string {
@@ -23,19 +23,22 @@ function covers(prefix: string, path: string): boolean {
   return path === prefix || path.startsWith(prefix.endsWith(sep) ? prefix : prefix + sep);
 }
 
-// Worktrees share the common git dir with the main repo, so their root is the main checkout.
-export function resolveProjectRoot(cwd: string): Promise<string> {
+function git(cwd: string, args: string[]): Promise<string> {
   return new Promise((done) => {
-    execFile(
-      "git",
-      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
-      { cwd, timeout: 5000 },
-      (error, stdout) => {
-        const common = error ? "" : stdout.trim();
-        done(canonical(common ? dirname(common) : cwd));
-      },
-    );
+    execFile("git", args, { cwd, timeout: 5000 }, (error, stdout) => done(error ? "" : stdout.trim()));
   });
+}
+
+// Worktrees share the common git dir with the main repo, so their root is the main checkout.
+export async function resolveProjectRoot(cwd: string): Promise<string> {
+  const common = await git(cwd, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  if (!common) return canonical(cwd);
+  if (basename(common) === ".git") return canonical(dirname(common));
+  // A submodule keeps its git dir under the superproject's .git/modules; a bare repo is its own root.
+  if (common.includes(`${sep}.git${sep}modules${sep}`)) {
+    return canonical((await git(cwd, ["rev-parse", "--show-toplevel"])) || cwd);
+  }
+  return canonical(common);
 }
 
 export type Selected =

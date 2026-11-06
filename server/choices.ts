@@ -8,11 +8,9 @@ export interface SnapshotEntry {
   models?: { id: string; label: string }[];
 }
 
-// Only providers configured and not disabled are offered; with none configured, the daemon snapshot decides.
+// Built-in providers have no config entry, so only an explicit `enabled: false` hides one.
 export function isConfigured(config: PaseoConfigView, id: string): boolean {
-  if (Object.keys(config.providers).length === 0) return true;
-  const entry = config.providers[id];
-  return !!entry && entry.enabled !== false;
+  return config.providers[id]?.enabled !== false;
 }
 
 // Providers come from the daemon snapshot when available and from the config otherwise.

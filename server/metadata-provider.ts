@@ -22,6 +22,25 @@ export interface MetadataProviderDeps {
 
 type PromptInput = Extract<ProviderInput, { type: "session.prompt" }>;
 
+// Models often wrap JSON in code fences or prose; return the bare JSON when it can be found.
+export function extractJson(text: string): string {
+  const candidates = [text.trim()];
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/i.exec(text);
+  if (fenced) candidates.push(fenced[1].trim());
+  const open = text.search(/[{[]/);
+  const close = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
+  if (open !== -1 && close > open) candidates.push(text.slice(open, close + 1));
+  for (const candidate of candidates) {
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return text;
+}
+
 export async function generateMetadataText(
   cwd: string,
   prompt: string,
@@ -60,7 +79,15 @@ export function createMetadataConnection(deps: MetadataProviderDeps): ProviderCo
 
   async function runPrompt(sessionId: string, input: PromptInput): Promise<void> {
     const session = sessions.get(sessionId);
-    if (!session) return;
+    if (!session) {
+      emit({
+        type: "session.prompt_result",
+        sessionId,
+        clientMessageId: input.prompt.clientMessageId,
+        result: { type: "failed", error: { message: `Unknown session ${sessionId}` } },
+      });
+      return;
+    }
     const turnId = randomUUID();
     const abort = new AbortController();
     session.abort = abort;
@@ -73,7 +100,8 @@ export function createMetadataConnection(deps: MetadataProviderDeps): ProviderCo
     emit({ type: "session.turn", sessionId, turnId, state: "started" });
     try {
       const prompt = withSchema(textOf(input.prompt.input), input.prompt.outputSchema);
-      const text = await generateMetadataText(session.cwd, prompt, deps, abort.signal);
+      const output = await generateMetadataText(session.cwd, prompt, deps, abort.signal);
+      const text = input.prompt.outputSchema === undefined ? output : extractJson(output);
       emit({
         type: "timeline.item",
         sessionId,
@@ -93,7 +121,7 @@ export function createMetadataConnection(deps: MetadataProviderDeps): ProviderCo
         });
       }
     } finally {
-      session.abort = undefined;
+      if (session.abort === abort) session.abort = undefined;
     }
   }
 
